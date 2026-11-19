@@ -117,7 +117,21 @@ function topProductosPorValor(ventas, k) {
     .slice(0, k);
 }
 
+function ventasDelDia(ventas, fecha) {
+  const buscada = String(fecha ?? "").trim();
+  const delDia = ventas.filter((venta) => String(venta.fecha).trim() === buscada);
+  return {
+    fecha: buscada,
+    registros: delDia.length,
+    ventasValidas: delDia.filter((venta) => venta.cantidad > 0).length,
+    unidades: unidadesVendidas(delDia),
+    total: totalVendido(delDia),
+    ticketPromedio: ticketPromedio(delDia),
+  };
+}
+
 module.exports = {
+  ventasDelDia,
   normalizar,
   valorVenta,
   totalVendido,

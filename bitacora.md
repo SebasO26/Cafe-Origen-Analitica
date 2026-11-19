@@ -208,4 +208,43 @@ El Molino manual tiene el precio unitario más alto ($120.000), pero una venta s
 
 `node src/verificar.js` compara cada par con 4 entradas (completa, un elemento, vacío y con ciudades con espacios y mayúsculas) y 5 ciudades. Los 28 pares dan **OK** y las comprobaciones adicionales también (4 ciudades sin duplicados, `ventas` sin alterar, etc.).
 
-<!-- fin -->
+---
+
+## MiniReto 4 · Analítica v0.1: el primer reporte
+
+### Nuevo en este reto
+
+- `ventasDelDia(ventas, fecha)` devuelve `{ fecha, registros, ventasValidas, unidades, total, ticketPromedio }`. Un día sin ventas devuelve ceros, nunca un error ni `NaN`.
+- `src/reporte.js` imprime el reporte con resumen general, ventas por ciudad, unidades por producto, top 3 y resumen de dos días (`2026-09-05` con ventas y `2026-09-07` sin ventas). Los valores van en pesos con `toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 })`.
+- `src/depurar.js` reproduce los dos errores de la gerente con una versión "preliminar" y prueba que la v0.1 no los tiene.
+
+### Registro de depuración
+
+#### Error 1 · "Bogotá aparecía dos veces"
+
+| Campo | Detalle |
+|---|---|
+| **Síntoma** | En el total por ciudad, la misma ciudad aparecía en dos filas (`Bogotá` y `Bogotá `). |
+| **Entrada que lo produce** | Ventas cuya ciudad difiere en espacios finales o mayúsculas. En la muestra ya existe `medellín` (id 5) junto a `Medellín`; agregando una venta con `"Bogotá "` se reproduce exactamente el síntoma descrito. |
+| **Hipótesis** | La agrupación usa el texto de la ciudad tal cual como clave del objeto. Para JavaScript, `"Bogotá"` y `"Bogotá "` son claves distintas. |
+| **Prueba realizada** | Imprimir `Object.keys(grupos)` de la versión preliminar con la entrada anterior: `['Medellín','Bogotá','Cali','medellín','Pereira','Bogotá ']`, 6 claves en lugar de 4. Luego comparar con `totalPorCiudad` de la v0.1 con la misma entrada. |
+| **Causa** | Clave de agrupación sin normalizar (`grupos[venta.ciudad]`). |
+| **Corrección** | `totalPorCiudad` usa `nombreCanonico(venta.ciudad)` (`trim()`, `toLowerCase()` y primera letra en mayúscula) como clave. Con la misma entrada devuelve exactamente 4 claves: `['Medellín','Bogotá','Cali','Pereira']`. Verificado en `depurar.js` y `verificar.js`. |
+
+#### Error 2 · "El ticket promedio daba NaN cuando filtraba un día sin ventas"
+
+| Campo | Detalle |
+|---|---|
+| **Síntoma** | El ticket promedio mostraba `NaN` al filtrar un día sin ventas. |
+| **Entrada que lo produce** | Un arreglo vacío, por ejemplo `ventas.filter(v => v.fecha === "2026-09-07")`, que da `[]`. |
+| **Hipótesis** | Se divide el total entre la cantidad de ventas; con arreglo vacío es `0 / 0`, que en JavaScript es `NaN`. |
+| **Prueba realizada** | En la consola: `0 / 0` da `NaN` y `ticketPromedioIngenuo([])` da `NaN`. Se confirma que el denominador (`lista.length`) es 0. |
+| **Causa** | Falta de guarda para el caso "sin ventas válidas": no se comprobó el denominador antes de dividir. |
+| **Corrección** | `ticketPromedio` cuenta solo ventas válidas (`cantidad > 0`) y, si `validas === 0`, devuelve `0` antes de dividir. `ventasDelDia` la reutiliza. Prueba: `ticketPromedio([]) === 0`, `ventasDelDia(ventas, "2026-09-07").ticketPromedio === 0`, y un día con solo ventas de cantidad 0 también da 0. |
+
+La versión del MiniReto 2 ya incluía la guarda desde su diseño (decisión documentada para `[]`). Por eso, para reproducir los errores fue necesario escribir la versión ingenua en `depurar.js`; el reto pide demostrar que la v0.1 no los presenta, y las pruebas lo hacen.
+
+### Verificación final del reporte
+
+`node src/reporte.js | grep -E "NaN|undefined"` no encuentra coincidencias. Las cuatro secciones se imprimen y el día sin ventas muestra el mensaje "sin ventas registradas este día" con valores en cero. Las ciudades aparecen exactamente una vez cada una.
+
