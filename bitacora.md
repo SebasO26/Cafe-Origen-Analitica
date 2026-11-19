@@ -27,4 +27,150 @@ Cada registro del arreglo `ventas` representa **una línea de venta**: un client
 | 5 | **Fechas como texto**. | todos | Comparo fechas por igualdad de texto `AAAA-MM-DD` (válido por ser formato ISO). |
 | 6 | **Arreglo vacío** (por ejemplo al filtrar un día sin ventas). | análisis | Las funciones nunca devuelven `NaN`; ver decisiones en el MiniReto 2. |
 
+---
+
+## MiniReto 2 · Los números del día (con ciclos)
+
+### Pseudocódigo (escrito antes de programar)
+
+**Función auxiliar `normalizar(texto)`:** devuelve `texto` sin espacios en los extremos y en minúsculas. Sirve para comparar ciudades.
+
+**`valorVenta(venta)`**
+```
+DEVOLVER venta.cantidad × venta.precio
+```
+
+**`totalVendido(ventas)`** — patrón acumulador. Recorro todas las ventas. Inicio en 0 porque es el elemento neutro de la suma.
+```
+total ← 0
+PARA CADA venta EN ventas:
+    total ← total + valorVenta(venta)
+DEVOLVER total
+```
+
+**`unidadesVendidas(ventas)`** — patrón acumulador. Recorro todas las ventas. Inicio en 0.
+```
+unidades ← 0
+PARA CADA venta EN ventas:
+    unidades ← unidades + venta.cantidad
+DEVOLVER unidades
+```
+
+**`ventaMayor(ventas)`** — patrón máximo. Recorro todas las ventas. Condición: solo cuentan las ventas válidas (cantidad mayor que 0). Inicio en `null` porque todavía no hay candidata. Devuelve el registro completo, no solo el valor.
+```
+mayor ← null
+PARA CADA venta EN ventas:
+    SI venta.cantidad > 0:
+        SI mayor = null O valorVenta(venta) > valorVenta(mayor):
+            mayor ← venta
+DEVOLVER mayor
+```
+
+**`ticketPromedio(ventas)`** — acumulador más contador. Recorro todas las ventas. Condición: venta válida (cantidad mayor que 0). Acumulo el valor y cuento las ventas válidas. Inicio ambos en 0.
+```
+total ← 0
+validas ← 0
+PARA CADA venta EN ventas:
+    SI venta.cantidad > 0:
+        total ← total + valorVenta(venta)
+        validas ← validas + 1
+SI validas = 0:
+    DEVOLVER 0
+DEVOLVER total ÷ validas
+```
+La guarda `validas = 0` evita dividir 0 ÷ 0, que daría `NaN`.
+
+**`ventasPorCiudad(ventas, ciudad)`** — acumulador con condición. Recorro todas las ventas. Condición: la ciudad normalizada coincide con la buscada (ignora mayúsculas y espacios sobrantes). Acumulo el valor. Inicio en 0.
+```
+buscada ← normalizar(ciudad)
+total ← 0
+PARA CADA venta EN ventas:
+    SI normalizar(venta.ciudad) = buscada:
+        total ← total + valorVenta(venta)
+DEVOLVER total
+```
+
+### Decisión: ¿qué devuelve cada función con el arreglo vacío?
+
+| Función | `[]` devuelve | Razón |
+|---|---|---|
+| `totalVendido([])` | `0` | El acumulador nunca cambia: la suma de nada es 0. |
+| `unidadesVendidas([])` | `0` | Igual que la anterior. |
+| `ventaMayor([])` | `null` | No existe ningún registro que devolver; `null` expresa "no hay venta". Quien la use debe comprobar `null`. |
+| `ticketPromedio([])` | `0` | Dividir 0 ÷ 0 daría `NaN`; se protege con la guarda `validas === 0`. Mismo valor si todas las ventas tienen cantidad 0. |
+| `ventasPorCiudad([], c)` | `0` | Ninguna venta coincide: suma vacía. |
+
+`ventaMayor` solo considera ventas con `cantidad > 0`. Si todas son inválidas, también devuelve `null`.
+
+### Resultados del programa (muestra completa)
+
+| Indicador | Resultado |
+|---|---|
+| `totalVendido` | $985.000 |
+| `unidadesVendidas` | 21 |
+| `ventaMayor` | id 10, Origen Huila 500 g, Pereira, 4 × $42.000 = $168.000 |
+| `ticketPromedio` | $89.545,45 (985.000 ÷ 11 ventas válidas) |
+| `ventasPorCiudad("Medellín")` | $356.000 (incluye la venta id 5, escrita `medellín`) |
+
+### Trazas manuales
+
+**Traza 1 · `totalVendido` con la muestra completa**
+
+| Vuelta | id | cantidad × precio | valorVenta | total acumulado |
+|---|---|---|---|---|
+| inicio | | | | 0 |
+| 1 | 1 | 2 × 42.000 | 84.000 | 84.000 |
+| 2 | 2 | 1 × 26.000 | 26.000 | 110.000 |
+| 3 | 3 | 1 × 95.000 | 95.000 | 205.000 |
+| 4 | 4 | 1 × 42.000 | 42.000 | 247.000 |
+| 5 | 5 | 3 × 45.000 | 135.000 | 382.000 |
+| 6 | 6 | 2 × 26.000 | 52.000 | 434.000 |
+| 7 | 7 | 1 × 120.000 | 120.000 | 554.000 |
+| 8 | 8 | 0 × 42.000 | 0 | 554.000 |
+| 9 | 9 | 2 × 45.000 | 90.000 | 644.000 |
+| 10 | 10 | 4 × 42.000 | 168.000 | 812.000 |
+| 11 | 11 | 1 × 95.000 | 95.000 | 907.000 |
+| 12 | 12 | 3 × 26.000 | 78.000 | **985.000** |
+
+Coincide con el programa: `totalVendido(ventas)` = 985000. ✔
+
+**Traza 2 · `ventasPorCiudad(ventas, "Medellín")`**
+
+`buscada` = `"medellín"`
+
+| id | ciudad original | normalizada | ¿coincide? | valorVenta | total acumulado |
+|---|---|---|---|---|---|
+| inicio | | | | | 0 |
+| 1 | Medellín | medellín | sí | 84.000 | 84.000 |
+| 2 | Bogotá | bogotá | no | | 84.000 |
+| 3 | Cali | cali | no | | 84.000 |
+| 4 | Medellín | medellín | sí | 42.000 | 126.000 |
+| 5 | medellín | medellín | **sí** | 135.000 | 261.000 |
+| 6 a 10 | Bogotá, Bogotá, Cali, Cali, Pereira | | no | | 261.000 |
+| 11 | Medellín | medellín | sí | 95.000 | **356.000** |
+| 12 | Bogotá | bogotá | no | | 356.000 |
+
+Coincide con el programa: 356000. Sin normalizar, la venta id 5 ($135.000) se habría perdido. ✔
+
+**Traza 3 · `ventaMayor` (máximo)**
+
+| id | ¿cantidad > 0? | valorVenta | mayor tras la vuelta |
+|---|---|---|---|
+| 1 | sí | 84.000 | id 1 (84.000) |
+| 2 | sí | 26.000 | id 1 |
+| 3 | sí | 95.000 | id 3 (95.000) |
+| 4 | sí | 42.000 | id 3 |
+| 5 | sí | 135.000 | id 5 (135.000) |
+| 6 | sí | 52.000 | id 5 |
+| 7 | sí | 120.000 | id 5 (120.000 no supera a 135.000) |
+| 8 | **no** (cantidad 0) | se ignora | id 5 |
+| 9 | sí | 90.000 | id 5 |
+| 10 | sí | 168.000 | **id 10 (168.000 > 135.000)** |
+| 11 | sí | 95.000 | id 10 |
+| 12 | sí | 78.000 | id 10 |
+
+Resultado de la traza: la venta mayor es la **id 10** (4 × 42.000 = $168.000). Coincide con el programa. ✔
+
+El Molino manual tiene el precio unitario más alto ($120.000), pero una venta se mide por `cantidad × precio`, así que no es la mayor.
+
 <!-- fin -->
