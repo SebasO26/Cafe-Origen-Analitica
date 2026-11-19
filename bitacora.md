@@ -173,4 +173,39 @@ Resultado de la traza: la venta mayor es la **id 10** (4 × 42.000 = $168.000). 
 
 El Molino manual tiene el precio unitario más alto ($120.000), pero una venta se mide por `cantidad × precio`, así que no es la mayor.
 
+---
+
+## MiniReto 3 · Del ciclo al método
+
+### Las cinco preguntas sobre colecciones, función por función
+
+| Función | ¿Qué recorro? | ¿Qué filtro? | ¿Qué transformo? | ¿Qué acumulo? | ¿Cómo agrupo? |
+|---|---|---|---|---|---|
+| `totalVendidoM` | todas las ventas | nada | cada venta → su valor (`map(valorVenta)`) | suma de valores, `reduce` con valor inicial `0` | no agrupa |
+| `unidadesVendidasM` | todas las ventas | nada | nada (se lee `cantidad` directo) | suma de cantidades, inicial `0` | no agrupa |
+| `ventasPorCiudadM` | todas las ventas | las de la ciudad buscada, comparando `normalizar(...)` (`filter`) | cada venta → su valor (`map`) | suma de valores, inicial `0` | no agrupa (una sola ciudad) |
+| `totalPorCiudad` | todas las ventas | nada | nombre de ciudad → forma canónica (`Bogotá`); venta → valor | valor por ciudad, inicial `{}` | por ciudad: objeto usado como diccionario `{ciudad: total}` |
+| `unidadesPorProducto` | todas las ventas | nada | nombre de producto sin espacios sobrantes | unidades por producto, inicial `{}` | por producto: diccionario `{producto: unidades}` |
+| `topProductosPorValor` | las entradas del diccionario valor-por-producto (`Object.entries`) | solo los k primeros tras ordenar (`slice(0, k)`) | entradas `[producto, valor]` → objetos `{producto, valor}` (`map`) | la suma ocurre en `valorPorProducto`, con `reduce` inicial `{}` | por producto, y luego ordenamiento descendente con `sort((x, y) => y.valor - x.valor)` |
+
+### Decisiones
+
+- **Valor inicial en todos los `reduce`** (`0` o `{}`): sin él, `reduce` sobre `[]` lanza un error. Con él, `totalVendidoM([])` devuelve `0`, igual que la versión con ciclo.
+- **`sort` modifica el arreglo sobre el que se llama.** En `topProductosPorValor` nunca se ordena `ventas`: se parte de `Object.entries(...)` (arreglo nuevo), se copia con `[...]` y recién entonces se ordena. Comprobado en `verificar.js`: `ventas` conserva su orden.
+- **`sort` con función de comparación:** sin ella, JavaScript ordena como texto (`"168000"` antes que `"85000"`). Se usa `y.valor - x.valor` para descendente; en empate, orden alfabético para que el resultado sea estable y repetible.
+- **Sin grupos duplicados:** las claves de `totalPorCiudad` salen de `nombreCanonico` (trim, minúsculas y primera letra en mayúscula). `medellín`, `Medellín` y `"Medellín "` caen en la clave `Medellín`.
+- **`k` inválido** (0, negativo, no entero) → `[]`.
+
+### Resultados
+
+| Función | Resultado |
+|---|---|
+| `totalPorCiudad` | Medellín 356.000 · Bogotá 276.000 · Cali 185.000 · Pereira 168.000 (suma 985.000) |
+| `unidadesPorProducto` | Huila 7 · Nariño 6 · Sierra 5 · Prensa francesa 2 · Molino manual 1 (suma 21) |
+| `topProductosPorValor(ventas, 3)` | 1. Origen Huila 500 g $294.000 · 2. Origen Sierra 500 g $225.000 · 3. Prensa francesa $190.000 |
+
+### Verificación ciclo vs. método
+
+`node src/verificar.js` compara cada par con 4 entradas (completa, un elemento, vacío y con ciudades con espacios y mayúsculas) y 5 ciudades. Los 28 pares dan **OK** y las comprobaciones adicionales también (4 ciudades sin duplicados, `ventas` sin alterar, etc.).
+
 <!-- fin -->

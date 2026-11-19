@@ -60,6 +60,63 @@ function ventasPorCiudad(ventas, ciudad) {
   return total;
 }
 
+function totalVendidoM(ventas) {
+  return ventas.map(valorVenta).reduce((suma, valor) => suma + valor, 0);
+}
+
+function unidadesVendidasM(ventas) {
+  return ventas.reduce((suma, venta) => suma + venta.cantidad, 0);
+}
+
+function ventasPorCiudadM(ventas, ciudad) {
+  const buscada = normalizar(ciudad);
+  return ventas
+    .filter((venta) => normalizar(venta.ciudad) === buscada)
+    .map(valorVenta)
+    .reduce((suma, valor) => suma + valor, 0);
+}
+
+function nombreCanonico(texto) {
+  return normalizar(texto)
+    .split(" ")
+    .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+    .join(" ");
+}
+
+function totalPorCiudad(ventas) {
+  return ventas.reduce((grupos, venta) => {
+    const ciudad = nombreCanonico(venta.ciudad);
+    grupos[ciudad] = (grupos[ciudad] ?? 0) + valorVenta(venta);
+    return grupos;
+  }, {});
+}
+
+function unidadesPorProducto(ventas) {
+  return ventas.reduce((grupos, venta) => {
+    const producto = String(venta.producto).trim();
+    grupos[producto] = (grupos[producto] ?? 0) + venta.cantidad;
+    return grupos;
+  }, {});
+}
+
+function valorPorProducto(ventas) {
+  return ventas.reduce((grupos, venta) => {
+    const producto = String(venta.producto).trim();
+    grupos[producto] = (grupos[producto] ?? 0) + valorVenta(venta);
+    return grupos;
+  }, {});
+}
+
+function topProductosPorValor(ventas, k) {
+  if (!Number.isInteger(k) || k <= 0) {
+    return [];
+  }
+  const filas = [...Object.entries(valorPorProducto(ventas))].map(([producto, valor]) => ({ producto, valor }));
+  return filas
+    .sort((x, y) => y.valor - x.valor || x.producto.localeCompare(y.producto))
+    .slice(0, k);
+}
+
 module.exports = {
   normalizar,
   valorVenta,
@@ -68,4 +125,12 @@ module.exports = {
   ventaMayor,
   ticketPromedio,
   ventasPorCiudad,
+  totalVendidoM,
+  unidadesVendidasM,
+  ventasPorCiudadM,
+  nombreCanonico,
+  totalPorCiudad,
+  unidadesPorProducto,
+  valorPorProducto,
+  topProductosPorValor,
 };
